@@ -8,9 +8,7 @@ type Step = "choose" | "payment" | "paypal" | "confirm";
 
 function App() {
   const [step, setStep] = useState<Step>("choose");
-
   const [cardDetails, setCardDetails] = useState<PaymentFormDetails>();
-
   const [paypalToken, setPaypalToken] = useState<string>();
 
   const onBack = useCallback(() => {
@@ -78,33 +76,13 @@ function App() {
         ></PaymentForm>
       )}
       {step === "confirm" && (
-        <div>
-          <h1 className="mb-4 text-xl font-medium tracking-tight text-gray-800">
-            Confirm
-          </h1>
-          <pre className="mb-4 text-xs">
-            {JSON.stringify(
-              {
-                cardDetails,
-                paypalToken,
-              },
-              null,
-              2,
-            )}
-          </pre>
-          <div className="space-x-2">
-            <Button onClick={onBack} variant="secondary">
-              Back
-            </Button>
-            <Button
-              onClick={() => {
-                alert("Complete!");
-              }}
-            >
-              Submit
-            </Button>
-          </div>
-        </div>
+        <ConfirmStep
+          onClickBack={onBack}
+          details={{
+            cardDetails,
+            paypalToken,
+          }}
+        />
       )}
     </div>
   );
@@ -115,6 +93,31 @@ interface PaymentFormDetails {
   expiry: string;
   cvv: string;
 }
+
+const ConfirmStep = (props: { onClickBack: () => void; details: {} }) => {
+  return (
+    <div>
+      <h1 className="mb-4 text-xl font-medium tracking-tight text-gray-800">
+        Confirm
+      </h1>
+      <pre className="mb-4 text-xs">
+        {JSON.stringify(props.details, null, 2)}
+      </pre>
+      <div className="space-x-2">
+        <Button onClick={props.onClickBack} variant="secondary">
+          Back
+        </Button>
+        <Button
+          onClick={() => {
+            alert("Complete!");
+          }}
+        >
+          Submit
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const PaymentForm = (props: {
   onSubmit: (details: PaymentFormDetails) => void;
