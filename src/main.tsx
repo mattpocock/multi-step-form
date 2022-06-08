@@ -1,36 +1,108 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useMachine } from "@xstate/react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { useForm } from "react-hook-form";
+import { createMachine } from "xstate";
 import { Button } from "./Button";
 import "./index.css";
 
-type Step = "choose" | "payment" | "paypal" | "confirm";
+const machine =
+  /** @xstate-layout N4IgpgJg5mDOIC5QFsCuAbALgSwMqbAAcAxAewCdkA6AYwAtTTZsA7KAYgGEAJAeV9wBRAPoAFAIIBNCQBlEoQk2w5SLeSAAeiALQAWAEwB2KgA4AbLoCMABhOWT+3dYCsh3QBoQATx2XnJqjNDEwBOa3t9AGZIkLMTXQBfBM80LDwCEgpqekZmNi4+ARFOACVBABEASQAVYU5xEvL1RWYVNSRNHV0QyKoQy319OLczWLdDTx8EbUjdKl1dQ31nM2c-IxcQ5ySUjBx8IjJKKjAWAnJWKE4AQ3IIcrBMa+x0WHZcAFUAIQBZGualG11FpptYqJEbGZ9CEYUM1uYTIZnJMdCEqEMQtCgoYIRYXCYdiBUvsMkdqKdzpcbncHk8Xm8vuJOABpAGtbCqYE6VxmKjWWwuRaWPyzSwohBOKj+GF2QaOJwhAnJIl7dKHLJUQjXLyXABq2Guom1WvQ72+f2qbOUHPaoBB2kswT5cS2iJWViWZnFen081sSJss0i-jciWVxLVmWOWp1bH1huN11NjJZVqBHXtll0vMiQzMcVlITcIW99l5Aqhzic1iCMLMhIjByj2VUADNsJRLprE8mmayOi1rZyMzpDMZrLpnP1hVFzHEvd4dMsAg4ofpwgM4osG6qm2TaG2O8guzRyJBlNSIOwU-2FICbVyEPZnOCBjWFlnnLnLAupsKX5EZjCt0ti6A4ir1oSLCkBAcDqI2pIajkShsGmD4jtMZjWMYoQ2DWYTdH4yKLtM+g-nyCyGPmAZVrEYa7Gke4ahSYAXGwl60s8rxocOdo6DEvKLEYURQoYYTQsRUyzHy8Q1lESJyV+O6MYh0banqBpGl4Jo8banSkdYvrOI4gxmBCIzBCYpaRGCPSLGBWaGNYMTxMpJLqscNCHp2bDdtpSa6Y+GxUGOiq5jiyxyqWkp2SMTiWNEoFuZG+5eSw7Y+VAtBnhAF63BAgUYcsaKToiFhmWE0RiiR2iGJYfS6JEdiNbEgo4slTGed5x6oQO968fpUQvqVVHZjEzkQvo3pkb0lVFtiQRNfRKoqR5yCFXxmEQqY-T8qME79M4kn8dtYlfs42FjvY5hJEkQA */
+  createMachine({
+    tsTypes: {} as import("./main.typegen").Typegen0,
+    id: "multiStepForm",
+    initial: "choosing",
+    schema: {
+      events: {} as
+        | {
+            type: "BACK";
+          }
+        | {
+            type: "CHOOSE_PAYPAL";
+          }
+        | {
+            type: "CHOOSE_CREDIT_CARD";
+          }
+        | {
+            type: "SUBMIT";
+          },
+    },
+    states: {
+      choosing: {
+        on: {
+          CHOOSE_PAYPAL: {
+            target: "payingViaPaypal",
+          },
+          CHOOSE_CREDIT_CARD: {
+            target: "enteringCardDetails",
+          },
+        },
+      },
+      enteringCardDetails: {
+        entry: ["resetPaypalToken"],
+        on: {
+          SUBMIT: {
+            target: "#multiStepForm.confirming.creditCard",
+          },
+          BACK: {
+            target: "choosing",
+          },
+        },
+      },
+      payingViaPaypal: {
+        entry: ["resetCardDetails"],
+        on: {
+          SUBMIT: {
+            target: "#multiStepForm.confirming.paypal",
+          },
+          BACK: {
+            target: "choosing",
+          },
+        },
+      },
+      confirming: {
+        states: {
+          paypal: {
+            on: {
+              BACK: {
+                target: "#multiStepForm.choosing",
+              },
+            },
+          },
+          creditCard: {
+            on: {
+              BACK: {
+                target: "#multiStepForm.enteringCardDetails",
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 
 function App() {
-  const [step, setStep] = useState<Step>("choose");
   const [cardDetails, setCardDetails] = useState<PaymentFormDetails>();
   const [paypalToken, setPaypalToken] = useState<string>();
 
-  const onBack = useCallback(() => {
-    switch (step) {
-      case "paypal":
-      case "payment":
-        setStep("choose");
-        break;
-      case "confirm":
-        if (cardDetails) {
-          setStep("payment");
-          setPaypalToken(undefined);
-        } else {
-          setStep("choose");
-        }
-        break;
-    }
-  }, [step]);
+  const [state, send] = useMachine(machine, {
+    actions: {
+      resetCardDetails: () => {
+        setCardDetails(undefined);
+      },
+      resetPaypalToken: () => {
+        setPaypalToken(undefined);
+      },
+    },
+  });
+
+  const onBack = () => {
+    send("BACK");
+  };
 
   return (
     <div className="px-6 py-4">
-      {step === "choose" && (
+      {state.matches("choosing") && (
         <div>
           <h1 className="mb-4 text-xl font-medium tracking-tight text-gray-800">
             Choose your payment method
@@ -38,8 +110,7 @@ function App() {
           <div className="space-x-2">
             <Button
               onClick={() => {
-                setStep("paypal");
-                setCardDetails(undefined);
+                send("CHOOSE_PAYPAL");
               }}
               variant="secondary"
             >
@@ -47,8 +118,7 @@ function App() {
             </Button>
             <Button
               onClick={() => {
-                setStep("payment");
-                setPaypalToken(undefined);
+                send("CHOOSE_CREDIT_CARD");
               }}
             >
               Pay via Card
@@ -56,26 +126,26 @@ function App() {
           </div>
         </div>
       )}
-      {step === "paypal" && (
+      {state.matches("payingViaPaypal") && (
         <PayPalForm
           onSubmit={(token) => {
-            setStep("confirm");
+            send("SUBMIT");
             setPaypalToken(token);
           }}
           onClickBack={onBack}
         ></PayPalForm>
       )}
-      {step === "payment" && (
+      {state.matches("enteringCardDetails") && (
         <PaymentForm
           onSubmit={(details) => {
-            setStep("confirm");
+            send("SUBMIT");
             setCardDetails(details);
           }}
           initialValues={cardDetails}
           onClickBack={onBack}
         ></PaymentForm>
       )}
-      {step === "confirm" && (
+      {state.matches("confirming") && (
         <ConfirmStep
           onClickBack={onBack}
           details={{

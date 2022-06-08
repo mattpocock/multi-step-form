@@ -2,13 +2,16 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {};
+  eventsCausingActions: {
+    resetPaypalToken: "CHOOSE_CREDIT_CARD" | "BACK";
+    resetCardDetails: "CHOOSE_PAYPAL";
+  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
   invokeSrcNameMap: {};
   missingImplementations: {
-    actions: never;
+    actions: "resetPaypalToken" | "resetCardDetails";
     services: never;
     guards: never;
     delays: never;
@@ -16,6 +19,13 @@ export interface Typegen0 {
   eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
-  matchesStates: "taking card details" | "new state 1";
+  matchesStates:
+    | "choosing"
+    | "enteringCardDetails"
+    | "payingViaPaypal"
+    | "confirming"
+    | "confirming.paypal"
+    | "confirming.creditCard"
+    | { confirming?: "paypal" | "creditCard" };
   tags: never;
 }
