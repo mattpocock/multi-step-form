@@ -7,9 +7,11 @@ import { Button } from "./Button";
 import "./index.css";
 
 const machine =
-  /** @xstate-layout N4IgpgJg5mDOIC5QDEwBcDGALMAnAdAJIQA2YAxMgKIAqAwgBKKgAOA9rAJZqdsB2zEAA9EAWgCc4-AHYArAAZxADgCMAFgDM0leM1KANCACeY9QCZ8ugGzarWpbKtWzAXxeHUmHAU-ZOfKHIIfjB8fwA3NgBrUN9vfDj-KAQItgwAQx5+AG15AF1Bdi4sgSRhMS01fDMlRXU1FTNleQNjRGkZR3EzM1lHMytZNRa3dxA+Ngg4QTi8IlIwQo5uXlLQEQRRDTVZfCVpK115bTVe8WlDE031KR2NDVqNFSVJNQO3D3RsOcSApeLVoINqIVLIOtJ9oorGpBk4ampLmIzFUzFo+vtJM4zPJeh8QLNcP8VvwgRVlNVauJ6o1mq0rqIehZNOctFZFL0BhpRi4gA */
+  /** @xstate-layout N4IgpgJg5mDOIC5QFsCuAbALgSwMqbAAcAxAewCdkA6AYwAtTTZsA7KAYgGEAJAeV9wBRAPoAFAIIBNCQBlEoQk2w5SLeSAAeiALQAWAEwB2KgA4AbLoCMABhOWT+3dYCsh3QBoQATx2XnJqjNDEwBOa3t9AGZIkLMTXQBfBM80LDwCEgpqekZmNi4+ARFOACVBABEASQAVYU5xEvL1RWYVNSRNHV0QyKoQy319OLczWLdDTx8EbUjdKl1dQ31nM2c-IxcQ5ySUjBx8IjJKKjAWAnJWKE4AQ3IIcrBMa+x0WHZcAFUAIQBZGualG11FpptYqJEbGZ9CEYUM1uYTIZnJMdCEqEMQtCgoYIRYXCYdiBUvsMkdqKdzpcbncHk8Xm8vuJOABpAGtbCqYE6VxmKjWWwuRaWPyzSwohBOKj+GF2QaOJwhAnJIl7dKHLJUQjXLyXABq2Guom1WvQ72+f2qbOUHPaoBB2kswT5cS2iJWViWZnFen081sSJss0i-jciWVxLVmWOWp1bH1huN11NjJZVqBHXtll0vMiQzMcVlITcIW99l5Aqhzic1iCMLMhIjByj2VUADNsJRLprE8mmayOi1rZyMzpDMZrLpnP1hVFzHEvd4dMsAg4ofpwgM4osG6qm2TaG2O8guzRyJBlNSIOwU-2FICbVyEPZnOCBjWFlnnLnLAupsKX5EZjCt0ti6A4ir1oSLCkBAcDqI2pIajkShsGmD4jtMZjWMYoQ2DWYTdH4yKLtM+g-nyCyGPmAZVrEYa7Gke4ahSYAXGwl60s8rxocOdo6DEvKLEYURQoYYTQsRUyzHy8Q1lESJyV+O6MYh0banqBpGl4Jo8banSkdYvrOI4gxmBCIzBCYpaRGCPSLGBWaGNYMTxMpJLqscNCHp2bDdtpSa6Y+GxUGOiq5jiyxyqWkp2SMTiWNEoFuZG+5eSw7Y+VAtBnhAF63BAgUYcsaKToiFhmWE0RiiR2iGJYfS6JEdiNbEgo4slTGed5x6oQO968fpUQvqVVHZjEzkQvo3pkb0lVFtiQRNfRKoqR5yCFXxmEQqY-T8qME79M4kn8dtYlfs42FjvY5hJEkQA */
   createMachine({
     tsTypes: {} as import("./CardForm.typegen").Typegen0,
+    id: "multiStepForm",
+    initial: "choosing",
     schema: {
       events: {} as
         | {
@@ -25,24 +27,55 @@ const machine =
             type: "SUBMIT";
           },
     },
-    id: "Fetcher",
-    initial: "Idle",
     states: {
-      Idle: {
+      choosing: {
         on: {
-          FETCH: {
-            target: "Fetching",
+          CHOOSE_PAYPAL: {
+            target: "payingViaPaypal",
+          },
+          CHOOSE_CREDIT_CARD: {
+            target: "enteringCardDetails",
           },
         },
       },
-      Fetching: {
-        invoke: {
-          src: "makeFetch",
-          onDone: [
-            {
-              target: "Idle",
+      enteringCardDetails: {
+        entry: ["resetPaypalToken"],
+        on: {
+          SUBMIT: {
+            target: "#multiStepForm.confirming.creditCard",
+          },
+          BACK: {
+            target: "choosing",
+          },
+        },
+      },
+      payingViaPaypal: {
+        entry: ["resetCardDetails"],
+        on: {
+          SUBMIT: {
+            target: "#multiStepForm.confirming.paypal",
+          },
+          BACK: {
+            target: "choosing",
+          },
+        },
+      },
+      confirming: {
+        states: {
+          paypal: {
+            on: {
+              BACK: {
+                target: "#multiStepForm.choosing",
+              },
             },
-          ],
+          },
+          creditCard: {
+            on: {
+              BACK: {
+                target: "#multiStepForm.enteringCardDetails",
+              },
+            },
+          },
         },
       },
     },
@@ -68,7 +101,7 @@ export function CardForm() {
   };
 
   return (
-    <div>
+    <div className="px-6 py-4">
       {state.matches("choosing") && (
         <div>
           <h1 className="mb-4 text-xl font-medium tracking-tight text-gray-800">

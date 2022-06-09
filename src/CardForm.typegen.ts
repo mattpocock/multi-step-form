@@ -2,24 +2,30 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {};
+  eventsCausingActions: {
+    resetPaypalToken: "CHOOSE_CREDIT_CARD" | "BACK";
+    resetCardDetails: "CHOOSE_PAYPAL";
+  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
-  invokeSrcNameMap: {
-    makeFetch: "done.invoke.Fetcher.Fetching:invocation[0]";
-  };
+  invokeSrcNameMap: {};
   missingImplementations: {
-    actions: never;
-    services: "makeFetch";
+    actions: "resetPaypalToken" | "resetCardDetails";
+    services: never;
     guards: never;
     delays: never;
   };
-  eventsCausingServices: {
-    makeFetch: "FETCH";
-  };
+  eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
-  matchesStates: "Idle" | "Fetching";
+  matchesStates:
+    | "choosing"
+    | "enteringCardDetails"
+    | "payingViaPaypal"
+    | "confirming"
+    | "confirming.paypal"
+    | "confirming.creditCard"
+    | { confirming?: "paypal" | "creditCard" };
   tags: never;
 }
